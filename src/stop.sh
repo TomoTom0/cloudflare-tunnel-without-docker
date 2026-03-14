@@ -1,23 +1,46 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-PID_FILE="$PROJECT_DIR/tmp/cloudflared.pid"
+source "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 
-if [ ! -f "$PID_FILE" ]; then
-    echo "PID file not found. cloudflared is not running."
+ALL_PIDS=""
+
+# PIDファイルからPIDを取得
+if [ -f "$PID_FILE" ]; then
+    PID="$(cat "$PID_FILE")"
+    if is_cloudflared_process "$PID"; then
+        ALL_PIDS="$PID"
+    else
+        [ -n "$PID" ] && echo "PID $PID is not cloudflared. Cleaning up PID file."
+    fi
+fi
+
+# /procを走査して追加のプロセスを検出
+SCANNED_PIDS="$(find_cloudflared_pids)"
+if [ -n "$SCANNED_PIDS" ]; then
+    if [ -n "$ALL_PIDS" ]; then
+        # PIDファイルのPIDと重複しないものを追加
+        while IFS= read -r pid; do
+            if [ "$pid" != "$ALL_PIDS" ]; then
+                ALL_PIDS="$ALL_PIDS"$'\n'"$pid"
+            fi
+        done <<< "$SCANNED_PIDS"
+    else
+        ALL_PIDS="$SCANNED_PIDS"
+    fi
+fi
+
+if [ -z "$ALL_PIDS" ]; then
+    echo "cloudflared is not running."
+    rm -f "$PID_FILE"
     exit 0
 fi
 
-PID="$(cat "$PID_FILE")"
+echo "Stopping cloudflared processes..."
+echo "$ALL_PIDS" | while IFS= read -r pid; do
+    echo " - Stopping PID $pid"
+    kill "$pid"
+done
 
-if kill -0 "$PID" 2>/dev/null; then
-    echo "Stopping cloudflared (PID: $PID)..."
-    kill "$PID"
-    rm -f "$PID_FILE"
-    echo "Stopped."
-else
-    echo "Process $PID is not running. Cleaning up PID file."
-    rm -f "$PID_FILE"
-fi
+rm -f "$PID_FILE"
+echo "Stopped."
