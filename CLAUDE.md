@@ -1,0 +1,1 @@
+このフォルダはgit repositoryである。

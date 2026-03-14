@@ -15,15 +15,13 @@ is_cloudflared_process() {
     [ "$(readlink -f /proc/"$pid"/exe 2>/dev/null)" = "$(readlink -f "$CLOUDFLARED_BIN")" ]
 }
 
-# /procを走査してcloudflaredのPIDを探す
-find_cloudflared_pid() {
+# /procを走査してcloudflaredの全PIDを探す
+find_cloudflared_pids() {
     local pid
     for pid_dir in /proc/[0-9]*; do
         pid="${pid_dir##*/}"
         if is_cloudflared_process "$pid" 2>/dev/null; then
             echo "$pid"
-            return 0
         fi
     done
-    return 1
 }

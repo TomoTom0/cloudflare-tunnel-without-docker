@@ -31,11 +31,11 @@ if [ -f "$PID_FILE" ]; then
 fi
 
 # PIDファイルがなくてもプロセスが存在する場合を検出
-EXISTING_PID="$(find_cloudflared_pid || true)"
-if [ -n "$EXISTING_PID" ]; then
-    echo "cloudflared is already running (PID: $EXISTING_PID) but PID file was missing. Recreating."
-    mkdir -p "$PROJECT_DIR/tmp"
-    echo "$EXISTING_PID" > "$PID_FILE"
+EXISTING_PIDS="$(find_cloudflared_pids)"
+if [ -n "$EXISTING_PIDS" ]; then
+    echo "cloudflared is already running but PID file was missing. Found PIDs:" >&2
+    echo "$EXISTING_PIDS" >&2
+    echo "Please run stop.sh to clean up before starting." >&2
     exit 1
 fi
 
