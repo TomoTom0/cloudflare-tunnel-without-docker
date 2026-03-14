@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-CLOUDFLARED_BIN="$PROJECT_DIR/bin/cloudflared"
-PID_FILE="$PROJECT_DIR/tmp/cloudflared.pid"
-LOG_FILE="$PROJECT_DIR/tmp/cloudflared.log"
-ENV_FILE="$PROJECT_DIR/.env"
+source "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 
 if [ ! -f "$CLOUDFLARED_BIN" ]; then
     echo "cloudflared not found. Run src/setup.sh first."
@@ -25,8 +20,22 @@ if [ -z "${TUNNEL_TOKEN:-}" ]; then
     exit 1
 fi
 
-if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
-    echo "cloudflared is already running (PID: $(cat "$PID_FILE"))"
+# PIDファイルのプロセスを確認
+if [ -f "$PID_FILE" ]; then
+    OLD_PID="$(cat "$PID_FILE")"
+    if is_cloudflared_process "$OLD_PID"; then
+        echo "cloudflared is already running (PID: $OLD_PID)"
+        exit 1
+    fi
+    rm -f "$PID_FILE"
+fi
+
+# PIDファイルがなくてもプロセスが存在する場合を検出
+EXISTING_PID="$(find_cloudflared_pid || true)"
+if [ -n "$EXISTING_PID" ]; then
+    echo "cloudflared is already running (PID: $EXISTING_PID) but PID file was missing. Recreating."
+    mkdir -p "$PROJECT_DIR/tmp"
+    echo "$EXISTING_PID" > "$PID_FILE"
     exit 1
 fi
 
