@@ -19,6 +19,7 @@ if [ -z "${TUNNEL_TOKEN:-}" ]; then
     echo "TUNNEL_TOKEN is not set in .env"
     exit 1
 fi
+export TUNNEL_TOKEN
 
 # PIDファイルのプロセスを確認
 if [ -f "$PID_FILE" ]; then
@@ -42,7 +43,21 @@ fi
 mkdir -p "$PROJECT_DIR/tmp"
 
 echo "Starting cloudflared tunnel..."
-nohup "$CLOUDFLARED_BIN" tunnel run --token "$TUNNEL_TOKEN" > "$LOG_FILE" 2>&1 &
+nohup "$CLOUDFLARED_BIN" tunnel run > "$LOG_FILE" 2>&1 &
 echo $! > "$PID_FILE"
-echo "cloudflared started (PID: $(cat "$PID_FILE"))"
+PID="$(cat "$PID_FILE")"
+
+# 起動直後のクラッシュを検知
+sleep 2
+if ! kill -0 "$PID" 2>/dev/null; then
+    echo "cloudflared failed to start. Log output:" >&2
+    cat "$LOG_FILE" >&2
+    rm -f "$PID_FILE"
+    exit 1
+fi
+
+echo "cloudflared started (PID: $PID)"
 echo "Log: $LOG_FILE"
+echo ""
+echo "--- Recent log ---"
+tail -5 "$LOG_FILE"
