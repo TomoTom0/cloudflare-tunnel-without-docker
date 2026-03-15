@@ -44,7 +44,7 @@ curl -fSL -o "$CLOUDFLARED_BIN" "$CLOUDFLARED_URL"
 chmod +x "$CLOUDFLARED_BIN"
 
 # ダウンロードしたファイルがELFバイナリか検証
-if ! head -c 4 "$CLOUDFLARED_BIN" | grep -q "^.ELF"; then
+if ! file "$CLOUDFLARED_BIN" | grep -q 'ELF.*executable'; then
     echo "Error: Downloaded file is not a valid ELF binary." >&2
     echo "Content preview:" >&2
     head -c 200 "$CLOUDFLARED_BIN" >&2

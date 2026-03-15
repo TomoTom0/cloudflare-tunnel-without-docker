@@ -49,7 +49,7 @@ PID="$(cat "$PID_FILE")"
 
 # 起動直後のクラッシュを検知
 sleep 2
-if ! kill -0 "$PID" 2>/dev/null; then
+if ! is_cloudflared_process "$PID" 2>/dev/null; then
     echo "cloudflared failed to start. Log output:" >&2
     cat "$LOG_FILE" >&2
     rm -f "$PID_FILE"
