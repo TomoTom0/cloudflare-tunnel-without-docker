@@ -6,7 +6,7 @@ Docker不要でCloudflare Tunnelを動作させるためのシェルスクリプ
 
 ## 前提条件
 
-- Linux (amd64 / arm64 / armv7l)
+- Linux (amd64 / arm64 / armv7l) または macOS (amd64 / arm64)
 - `curl`
 - Cloudflare DashboardでTunnelを作成済みであること
 
@@ -55,15 +55,17 @@ cp .env.example .env
 
 `setup.sh`はダウンロード時に以下を自動的に検証する:
 
-- `uname -m`からシステムのアーキテクチャを判定し、適切なバイナリをダウンロード
-- ダウンロードしたファイルがELFバイナリであることを確認(HTMLなどの誤ダウンロードを検知)
+- OSとアーキテクチャを判定し、適切なバイナリをダウンロード
+- ダウンロードしたファイルが正しいバイナリ形式であることを確認
+  （Linux: ELF、macOS: Mach-O）
 - バイナリが実行可能であることを確認(アーキテクチャ不一致を検知)
 
 検証に失敗した場合は不正なファイルを削除してエラー終了する。
 
 ## プロセス管理
 
-- PIDファイル(`tmp/cloudflared.pid`)と`/proc`走査の両方でプロセスを追跡する
+- PIDファイル(`tmp/cloudflared.pid`)とプロセス走査の両方でプロセスを追跡する
+  （Linux: `/proc`、macOS: `ps`コマンド）
 - 二重起動の防止、PIDファイル消失時の検出に対応
 - 外部コマンド(`pgrep`等)への依存なし
 - 起動直後のクラッシュを検知し、ログを表示してエラー終了する
