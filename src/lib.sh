@@ -16,6 +16,8 @@ resolve_path() {
     local file="${1##*/}"
     if [ "$dir" = "$1" ]; then
         dir="."
+    elif [ -z "$dir" ]; then
+        dir="/"
     fi
     base="$(cd "$dir" 2>/dev/null && pwd -P)" || return 1
     echo "$base/$file"
@@ -50,9 +52,7 @@ find_cloudflared_pids() {
     elif [ "$OS_NAME" = "Darwin" ]; then
         local resolved_bin
         resolved_bin="$(resolve_path "$CLOUDFLARED_BIN")" || return 0
-        while IFS= read -r line; do
-            pid="${line%% *}"
-            local comm="${line#* }"
+        while read -r pid comm; do
             if [ "$comm" = "$resolved_bin" ]; then
                 echo "$pid"
             fi
